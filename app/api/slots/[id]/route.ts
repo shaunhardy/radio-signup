@@ -4,6 +4,7 @@ import { slots } from "../../../../lib/db/schema";
 import { auth } from "../../../../lib/auth/auth";
 import { eq } from "drizzle-orm";
 import { DISCORD_ROLES } from "../../../../lib/constants";
+import { slotUpdateEmitter } from "@/lib/events/slot-updates";
 
 export async function DELETE(
     req: NextRequest,
@@ -42,6 +43,8 @@ export async function DELETE(
         }
 
         await db.delete(slots).where(eq(slots.id, slotId));
+
+        slotUpdateEmitter.notifyUpdate();
 
         return NextResponse.json({ success: true });
     } catch (error) {

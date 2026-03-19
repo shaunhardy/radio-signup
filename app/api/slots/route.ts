@@ -4,6 +4,7 @@ import { slots } from "../../../lib/db/schema";
 import { auth } from "../../../lib/auth/auth";
 import { and, gte, lte } from "drizzle-orm";
 import { DISCORD_ROLES } from "../../../lib/constants";
+import { slotUpdateEmitter } from "@/lib/events/slot-updates";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -83,6 +84,8 @@ export async function POST(req: NextRequest) {
             startTime: start,
             durationMinutes,
         }).returning();
+
+        slotUpdateEmitter.notifyUpdate();
 
         return NextResponse.json(newSlot);
     } catch (error) {
