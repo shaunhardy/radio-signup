@@ -3,6 +3,7 @@ import { db } from "../../../../lib/db";
 import { slots } from "../../../../lib/db/schema";
 import { auth } from "../../../../lib/auth/auth";
 import { eq } from "drizzle-orm";
+import { DISCORD_ROLES } from "../../../../lib/constants";
 
 export async function DELETE(
     req: NextRequest,
@@ -25,9 +26,18 @@ export async function DELETE(
         }
 
         // Check ownership or admin status
-        // (Assuming session.user.roles contains "admin" if they are admin)
-        const isAdmin = session.user.roles?.includes("admin");
-        if (slot.userId !== session.user.id && !isAdmin) {
+        const isOwner = slot.userId === session.user.id;
+        const isAdmin = session.user.roles?.includes(DISCORD_ROLES.ADMIN);
+        const hasAllowedRole = session.user.roles?.includes(DISCORD_ROLES.ALLOWED);
+
+        // Owners can only unassign if they still have the allowed role (or are admin)
+        // This is a safety check: if their role was revoked, they shouldn't be able to manage their slots.
+        if (isOwner) {
+            if (!hasAllowedRole && !isAdmin) {
+                return NextResponse.json({ error: "Forbidden: You no longer have the required role to manage slots" }, { status: 403 });
+            }
+        } else if (!isAdmin) {
+            // Not the owner and not an admin
             return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
 

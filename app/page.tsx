@@ -54,7 +54,7 @@ export default function Home() {
       <main className="container mx-auto py-8">
         <div className="px-4 mb-8">
           <h1 className="text-3xl font-bold mb-2">Weekly Schedule</h1>
-          <p className="text-zinc-600">Select an available slot to assign yourself. 4PM - 12AM slots are 2-hour blocks.</p>
+          <p className="text-zinc-600">Select an available slot to assign yourself. 4PM - 2AM slots are 2-hour blocks.</p>
         </div>
 
         <ScheduleTable />

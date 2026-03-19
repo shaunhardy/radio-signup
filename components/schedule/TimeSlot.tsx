@@ -3,14 +3,18 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { authClient } from "@/lib/auth/auth-client";
 import { formatSlotTime } from "@/lib/utils/schedule";
-import { cn } from "@/lib/utils"; // Assuming a standard cn utility exists or I'll create one
+import { cn } from "@/lib/utils";
 import { Loader2 } from "lucide-react";
+import { DISCORD_ROLES } from "@/lib/constants";
 
 interface Slot {
     id: string;
     userId: string | null;
     startTime: string;
     durationMinutes: number;
+    user?: {
+        name: string;
+    } | null;
 }
 
 interface TimeSlotProps {
@@ -52,16 +56,22 @@ export function TimeSlot({ startTime, durationMinutes, assignedSlot }: TimeSlotP
     });
 
     const isOccupied = !!assignedSlot;
-    const isMine = assignedSlot?.userId === session?.user?.id;
-    const isAdmin = session?.user?.roles?.includes("admin");
+    const isMine = assignedSlot?.userId && assignedSlot?.userId === session?.user?.id;
+    const isAdmin = session?.user?.roles?.includes(DISCORD_ROLES.ADMIN);
+    const hasAllowedRole = session?.user?.roles?.includes(DISCORD_ROLES.ALLOWED);
+
+    const canClaim = !isOccupied && (hasAllowedRole || isAdmin);
+    const canRelease = (isMine && (hasAllowedRole || isAdmin)) || (isOccupied && isAdmin);
 
     const handleClick = () => {
         if (!session) return alert("Please login first");
         if (isMine || (isOccupied && isAdmin)) {
+            if (!canRelease) return alert("You do not have permission to release this slot");
             if (confirm("Are you sure you want to release this slot?")) {
                 releaseMutation.mutate(assignedSlot!.id);
             }
         } else if (!isOccupied) {
+            if (!canClaim) return alert("You do not have the required role to claim a slot");
             claimMutation.mutate();
         }
     };
@@ -69,17 +79,18 @@ export function TimeSlot({ startTime, durationMinutes, assignedSlot }: TimeSlotP
     return (
         <div
             onClick={handleClick}
-            className={`
-                p-2 border rounded cursor-pointer transition-colors text-sm
-                ${!isOccupied ? "bg-green-50 hover:bg-green-100 border-green-200" : ""}
-                ${isMine ? "bg-blue-500 text-white border-blue-600" : ""}
-                ${isOccupied && !isMine ? "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed" : ""}
-                ${isOccupied && isAdmin && !isMine ? "hover:bg-red-50 hover:text-red-600 hover:border-red-200 cursor-pointer" : ""}
-            `}
+            className={cn(
+                "p-2 border rounded cursor-pointer transition-colors text-sm",
+                !isOccupied && (hasAllowedRole || isAdmin) && "bg-green-50 hover:bg-green-100 border-green-200",
+                !isOccupied && !hasAllowedRole && !isAdmin && "bg-gray-50 text-gray-400 border-gray-100 cursor-not-allowed",
+                isMine && "bg-blue-500 text-white border-blue-600",
+                isOccupied && !isMine && !isAdmin && "bg-gray-100 text-gray-500 border-gray-200 cursor-not-allowed",
+                isOccupied && isAdmin && !isMine && "bg-red-50 text-red-700 border-red-100 hover:bg-red-100 hover:border-red-200"
+            )}
         >
             <div className="font-semibold">{formatSlotTime(startTime, durationMinutes)}</div>
             <div className="text-xs">
-                {isMine ? "Claimed by You" : isOccupied ? "Occupied" : "Available"}
+                {isMine ? "Claimed by You" : isOccupied ? (assignedSlot?.user?.name || "Occupied") : "Available"}
                 {(claimMutation.isPending || releaseMutation.isPending) && <Loader2 className="inline w-3 h-3 animate-spin ml-1" />}
             </div>
         </div>

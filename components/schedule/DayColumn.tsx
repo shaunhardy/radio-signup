@@ -2,7 +2,9 @@
 
 import { generateDailySlots } from "@/lib/utils/schedule";
 import { TimeSlot } from "./TimeSlot";
-import { format } from "date-fns";
+import { formatInTimeZone } from "date-fns-tz";
+
+const TIMEZONE = "America/New_York";
 
 interface Slot {
     id: string;
@@ -22,8 +24,8 @@ export function DayColumn({ day, assignedSlots }: DayColumnProps) {
     return (
         <div className="flex flex-col gap-2 min-w-[200px]">
             <div className="text-center font-bold border-b pb-2 mb-2 sticky top-0 bg-white">
-                <div>{format(day, "EEEE")}</div>
-                <div className="text-sm text-gray-500">{format(day, "MMM do")}</div>
+                <div>{formatInTimeZone(day, TIMEZONE, "EEEE")}</div>
+                <div className="text-sm text-gray-500">{formatInTimeZone(day, TIMEZONE, "MMM do")}</div>
             </div>
             <div className="flex flex-col gap-2">
                 {dailySlotConfigs.map((config) => {

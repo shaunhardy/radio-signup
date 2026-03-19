@@ -3,6 +3,7 @@ import { db } from "../../../lib/db";
 import { slots } from "../../../lib/db/schema";
 import { auth } from "../../../lib/auth/auth";
 import { and, gte, lte } from "drizzle-orm";
+import { DISCORD_ROLES } from "../../../lib/constants";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -23,7 +24,11 @@ export async function GET(req: NextRequest) {
                 lte(slots.startTime, end)
             ),
             with: {
-                // user: true, // If we need user details like name
+                user: {
+                    columns: {
+                        name: true,
+                    }
+                },
             }
         });
 
@@ -38,6 +43,13 @@ export async function POST(req: NextRequest) {
     const session = await auth.api.getSession({ headers: req.headers });
     if (!session) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const hasAllowedRole = session.user.roles?.includes(DISCORD_ROLES.ALLOWED);
+    const isAdmin = session.user.roles?.includes(DISCORD_ROLES.ADMIN);
+
+    if (!hasAllowedRole && !isAdmin) {
+        return NextResponse.json({ error: "Forbidden: You do not have the required role to claim a slot" }, { status: 403 });
     }
 
     const { startTime, durationMinutes } = await req.json();

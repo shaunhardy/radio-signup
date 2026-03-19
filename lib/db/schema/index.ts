@@ -1,4 +1,5 @@
 import { pgTable, text, timestamp, boolean, uuid, integer, primaryKey } from "drizzle-orm/pg-core";
+import { relations } from "drizzle-orm";
 
 export const user = pgTable("user", {
 	id: text("id").primaryKey(),
@@ -11,6 +12,10 @@ export const user = pgTable("user", {
     discordId: text("discord_id"),
     roles: text("roles").array(), // We'll store role IDs as an array of strings
 });
+
+export const userRelations = relations(user, ({ many }) => ({
+    slots: many(slots),
+}));
 
 export const session = pgTable("session", {
 	id: text("id").primaryKey(),
@@ -56,3 +61,10 @@ export const slots = pgTable("slots", {
     isBlocked: boolean("is_blocked").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+export const slotsRelations = relations(slots, ({ one }) => ({
+    user: one(user, {
+        fields: [slots.userId],
+        references: [user.id],
+    }),
+}));
