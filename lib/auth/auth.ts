@@ -4,6 +4,7 @@ import { db } from "../db";
 import * as schema from "../db/schema";
 import {createAuthMiddleware} from "@better-auth/core/api";
 import { eq } from "drizzle-orm";
+import { type OAuth2Tokens, type OAuth2UserInfo } from "better-auth/oauth2";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -20,7 +21,7 @@ export const auth = betterAuth({
             clientId: process.env.DISCORD_CLIENT_ID!,
             clientSecret: process.env.DISCORD_CLIENT_SECRET!,
             scope: ["identify", "email", "guilds.members.read"],
-            mapUser: async (user, context) => {
+            mapUser: async (user: OAuth2UserInfo, context: OAuth2Tokens) => {
                 const guildId = process.env.DISCORD_GUILD_ID;
 
                 if (guildId && context.accessToken) {
